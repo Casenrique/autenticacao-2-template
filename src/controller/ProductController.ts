@@ -2,16 +2,18 @@ import { Request, Response } from "express"
 import { ProductBusiness } from "../business/ProductBusiness"
 import { CreateProductInput, GetProductsInput } from "../dtos/ProductDTO"
 import { BaseError } from "../errors/BaseError"
+import { TokenManager } from "../services/TokenManager"
 
 export class ProductController {
     constructor(
-        private productBusiness: ProductBusiness
+        private productBusiness: ProductBusiness,
     ) {}
 
     public getProducts = async (req: Request, res: Response) => {
         try {
             const input: GetProductsInput = {
-                q: req.query.q
+                q: req.query.q,
+                token: req.headers.authorization
             }
 
             const output = await this.productBusiness.getProducts(input)
@@ -33,7 +35,8 @@ export class ProductController {
 
             const input: CreateProductInput = {
                 name: req.body.name,
-                price: req.body.price
+                price: req.body.price,
+                token: req.headers.authorization
             }
 
             const output = await this.productBusiness.createProduct(input)

@@ -3,20 +3,37 @@ import { CreateProductInput, CreateProductOutput, GetProductsInput, GetProductsO
 import { BadRequestError } from "../errors/BadRequestError"
 import { Product } from "../models/Product"
 import { IdGenerator } from "../services/IdGenerator"
+import { TokenManager } from "../services/TokenManager"
+import { USER_ROLES } from "../types"
 
 export class ProductBusiness {
     constructor(
         private productDatabase: ProductDatabase,
-        private idGenerator: IdGenerator
+        private idGenerator: IdGenerator,
+        private tokenManager: TokenManager
     ) {}
 
     public getProducts = async (
         input: GetProductsInput
     ): Promise<GetProductsOutput> => {
-        const { q } = input
+        const { q, token } = input
 
         if (typeof q !== "string" && q !== undefined) {
             throw new BadRequestError("'q' deve ser string ou undefined")
+        }
+
+        if (typeof token !== "string" && token !== undefined) {
+            throw new BadRequestError("token inválido")
+        }
+
+        if (typeof token !== "string") {
+            throw new BadRequestError("token vazio")
+        }
+
+        const payload = this.tokenManager.getPayload(token)
+
+        if(payload === null) {
+            throw new BadRequestError("token inválido")            
         }
 
         const productsDB = await this.productDatabase.findProducts(q)
@@ -40,7 +57,7 @@ export class ProductBusiness {
     public createProduct = async (
         input: CreateProductInput
     ): Promise<CreateProductOutput> => {
-        const { name, price } = input
+        const { name, price, token } = input
 
         if (typeof name !== "string") {
             throw new BadRequestError("'name' deve ser string")
@@ -57,6 +74,26 @@ export class ProductBusiness {
         if (price <= 0) {
             throw new BadRequestError("'price' não pode ser zero ou negativo")
         }
+        
+        if (typeof token !== "string" && token !== undefined) {
+            throw new BadRequestError("token inválido")
+        }
+
+        if (typeof token !== "string") {
+            throw new BadRequestError("token vazio")
+        }
+
+        const payload = this.tokenManager.getPayload(token)
+
+        if(payload === null) {
+            throw new BadRequestError("token inválido")            
+        }
+        
+        if(payload.role !== USER_ROLES.ADMIN){
+            throw new BadRequestError("Somente ADMINs podem cadastrar produtos.");
+            
+        }
+        
 
         const id = this.idGenerator.generate()
 
